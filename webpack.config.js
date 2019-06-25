@@ -14,6 +14,36 @@ const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 
 const webpackConfig = {
+	devServer: {
+		port: 3000,
+		hot: true,
+		before(app) {
+			app.get('/api/test', (req, res) => {
+				res.send({
+					success: true,
+					message: 'hello'
+				});
+			});
+		}
+	},
+	optimization: {
+		splitChunks: {
+			chunks: "initial",
+			cacheGroups: {
+				commons: {
+					chunks: "initial",
+					name: "common",
+					minChunks: 1,
+					maxInitialRequests: 5,
+					minSize: 0
+				}
+			}
+		},
+		// 提取runtime包
+		runtimeChunk: {
+			name: "runtime"
+		}
+	},
 	module: {
 		rules: [{
 			//     test: /\.css$/,
