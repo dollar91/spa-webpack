@@ -1,7 +1,7 @@
 import help from '../common/help';
 console.log('async引用', help.version);
-const asynctest = {
-    init() {
+let asynctest = {
+    init: function() {
         console.log('async-test');
     }
 };

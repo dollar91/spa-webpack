@@ -11,8 +11,37 @@ const isProduction = (mode === "production");
 const merge = require("webpack-merge");
 const _mergeConfig = require(`./config/webpack.${mode}.js`);
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
-const HtmlWebpackPlugin = require('html-webpack-plugin')
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 
+// 多核压缩
+const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
+
+// 监控面板
+const SpeedMeasurePlugin = require("speed-measure-webpack-plugin");
+const smp = new SpeedMeasurePlugin();
+
+// 通知
+const WebpackBuildNotifierPlugin = require('webpack-build-notifier');
+
+// 进度条
+const ProgressBarPlugin = require('progress-bar-webpack-plugin');
+
+// 标题
+const setTitle = require('node-bash-title');
+setTitle('🍻  Server');
+
+// 离线缓存
+const ManifestPlugin = require('webpack-manifest-plugin');
+
+
+// loading
+const loading = {
+	html: '加载中...'
+};
+
+// 分析
+const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 const webpackConfig = {
 	devServer: {
 		port: 3000,
@@ -42,10 +71,27 @@ const webpackConfig = {
 		// 提取runtime包
 		runtimeChunk: {
 			name: "runtime"
-		}
+		},
+		// 第三方压缩插件，开启多核压缩
+		minimizer: [
+			new TerserPlugin({
+				parallel: true
+			})
+		]
 	},
 	module: {
 		rules: [{
+			test: /\.js$/,
+			exclude: __dirname + 'node_modules',
+			include: __dirname + 'src',
+			use: {
+				loader: 'babel-loader',
+				options: {
+					presets: ['env', 'es2015'],
+					plugins: ["dynamic-import-webpack"]
+				}
+			}
+		}, {
 			//     test: /\.css$/,
 			// loader: ExtractTextPlugin.extract({
 			//   fallbackLoader: 'style-loader',
@@ -72,6 +118,12 @@ const webpackConfig = {
 		}]
 	},
 	plugins: [
+		new ManifestPlugin(),
+		new ProgressBarPlugin(),
+		new WebpackBuildNotifierPlugin({
+			title: "spa-Webpack Build",
+			suppressSuccess: true
+		}),
 		// 深度tree-sharking js
 		new WebpackDeepScopeAnalysisPlugin(),
 		// 提取css为单独文件
@@ -90,9 +142,13 @@ const webpackConfig = {
 		new CleanWebpackPlugin(),
 		new HtmlWebpackPlugin({
 			filename: 'index.html',
-      template: 'src/index.html'
-		})
+			template: 'src/index.html',
+			loading
+		}),
+		new BundleAnalyzerPlugin()
 	]
 };
 
-module.exports = merge(_mergeConfig, webpackConfig);
+module.exports = smp.wrap(
+	merge(_mergeConfig, webpackConfig)
+);
